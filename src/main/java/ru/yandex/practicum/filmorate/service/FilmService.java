@@ -1,85 +1,45 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.Getter;
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Getter
+@Service
+@RequiredArgsConstructor
 public class FilmService {
-    @NonNull
-    private final Map<Integer, Film> filmMap = new HashMap<>();
-    public static final LocalDate START_RELEASE_DATE = LocalDate.of(1895, 12, 28);
-    private int filmId = 0;
+    private final FilmStorage filmStorage;
 
-    private int generateId() {
-        return ++filmId;
-    }
-
-    public List<Film> getAllFilms() {
-        return new ArrayList<>(filmMap.values());
-    }
-
-    public Film createFilm(Film film) {
-        if (isValidate(film)) {
-            if (!filmMap.containsKey(film.getId())) {
-                film.setId(generateId());
-                filmMap.put(film.getId(), film);
-            } else {
-                log.error("Фильм уже был добавлен раннее {}", film);
-                throw new ValidationException("Фильм уже был добавлен раннее");
-            }
+    public Set<Long> addLike(Long filmId, Long userId) {
+        if (filmStorage.getFilmById(filmId) != null && userId > 0) {
+            filmStorage.getFilmById(filmId).getLikes().add(userId);
         } else {
-            log.error("Некорректные данные {}", film);
-            throw new ValidationException("Некорректные данные");
+            throw new IllegalArgumentException("Некорректный id");
         }
-        log.debug("Добавлен фильм {}", film);
-        return film;
+        return filmStorage.getFilmById(filmId).getLikes();
     }
 
-
-    public Film updateFilm(Film film) {
-        if (isValidate(film)) {
-            if (filmMap.containsKey(film.getId())) {
-                filmMap.put(film.getId(), film);
-            } else {
-                log.error("Фильм не добавлен {}", film);
-                throw new ValidationException("Фильм не добавлен");
-            }
+    public Set<Long> removeLike(Long filmId, Long userId) {
+        if (filmStorage.getFilmById(filmId) != null && filmStorage.getFilmById(filmId).getLikes().remove(userId)) {
+            return filmStorage.getFilmById(filmId).getLikes();
         } else {
-            log.error("Некорректные данные {}", film);
-            throw new ValidationException("Некорректные данные");
+            throw new IllegalArgumentException("Некорректный id");
         }
-        log.debug("Обновлен фильм {}", film);
-        return film;
     }
 
-    private boolean isValidate(Film film) {
-        return isCorrectName(film) && isCorrectDescription(film)
-                && isCorrectDuration(film) && isCorrectReleaseDate(film);
-    }
-
-    private boolean isCorrectName(Film film) {
-        return film.getName() != null && !film.getName().isEmpty();
-    }
-
-    private boolean isCorrectDescription(Film film) {
-        return film.getDescription().length() <= 200;
-    }
-
-    private boolean isCorrectReleaseDate(Film film) {
-        return film.getReleaseDate().isAfter(START_RELEASE_DATE);
-    }
-
-    private boolean isCorrectDuration(Film film) {
-        return film.getDuration() > 0;
+    public List<Film> printTop10Films(Integer count) {
+        return filmStorage
+                .getAllFilms()
+                .stream()
+                .sorted((o1, o2) -> -1 * (o1.getLikes().size() - o2.getLikes().size()))
+                .limit(count).collect(Collectors.toList());
     }
 }

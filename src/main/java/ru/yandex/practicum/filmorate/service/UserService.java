@@ -1,93 +1,64 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.Getter;
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 @Slf4j
 @Getter
+@Service
+@RequiredArgsConstructor
 public class UserService {
-    @NonNull
-    private final Map<Integer, User> userMap = new HashMap<>();
-    private int userId = 0;
+    private final UserStorage userStorage;
 
-    private int generateId() {
-        return ++userId;
+    public Set<User> addFriend(Long userId, Long friendId) {
+        if (userStorage.getUserById(userId) != null && userStorage.getUserById(friendId) != null) {
+            userStorage.getUserById(userId).getFriends().add(friendId);
+            userStorage.getUserById(friendId).getFriends().add(userId);
+        } else {
+            throw new IllegalArgumentException("Некорректный id");
+        }
+        return userStorage.getSetUsersById(userStorage.getUserById(userId).getFriends());
     }
 
-    public List<User> getAllUsers() {
-        return new ArrayList<>(userMap.values());
-    }
-
-    public User createUser(User user) {
-        if (isValidate(user)) {
-            correctName(user);
-            if (!userMap.containsKey(user.getId())) {
-                user.setId(generateId());
-                userMap.put(user.getId(), user);
+    public Set<User> removeFriend(Long userId, Long friendId) {
+        if (userStorage.getUserById(userId) != null && userStorage.getUserById(friendId) != null) {
+            if (userStorage.getUserById(userId).getFriends().remove(friendId)
+                    && userStorage.getUserById(friendId).getFriends().remove(userId)) {
+                return userStorage.getSetUsersById(userStorage.getUserById(userId).getFriends());
             } else {
-                log.error("Пользователь уже существует {}", user);
-                throw new ValidationException("Пользователь уже существует");
+                throw new IllegalArgumentException("Пользователей не было в списке друзей");
             }
         } else {
-            log.error("Проверьте корректность введенных данных {}", user);
-            throw new ValidationException("Проверьте корректность введенных данных");
+            throw new IllegalArgumentException("Некорректный id");
         }
-        log.debug("Создан пользователь {}", user);
-        return user;
     }
 
+    public Set<User> getFriendsList(Long userId) {
+        if (userStorage.getUserById(userId) != null) {
+            return userStorage.getSetUsersById(userStorage.getUserById(userId).getFriends());
+        } else {
+            throw new IllegalArgumentException("Некорректный id");
+        }
+    }
 
-    public User updateUser(User user) {
-        if (isValidate(user)) {
-            correctName(user);
-            if (userMap.containsKey(user.getId())) {
-                userMap.put(user.getId(), user);
-            } else {
-                log.error("Нельзя обновить информацию для нового пользователя {}", user);
-                throw new ValidationException("Нельзя обновить информацию для нового пользователя");
+    public Set<User> printListCommonFriends(Long userId, Long otherId) {
+        Set<Long> generalFriends = new HashSet<>();
+        if (userStorage.getUserById(userId) != null && userStorage.getUserById(otherId) != null) {
+            for (Long idFriendUser1 : userStorage.getUserById(userId).getFriends()) {
+                if (userStorage.getUserById(otherId).getFriends().contains(idFriendUser1)) {
+                    generalFriends.add(idFriendUser1);
+                }
             }
         } else {
-            log.error("Проверьте корректность введенных данных {}", user);
-            throw new ValidationException("Проверьте корректность введенных данных");
+            throw new IllegalArgumentException("Некорректный id");
         }
-        log.debug("Обновлен пользователь {}", user);
-        return user;
-    }
-
-    private boolean isValidate(User user) {
-        return isCorrectEmail(user) && isCorrectLogin(user) && isCorrectBirthday(user);
-    }
-
-    private boolean isCorrectEmail(User user) {
-        if (user.getEmail() == null || user.getEmail().isBlank()) {
-            return false;
-        }
-        return user.getEmail().contains("@");
-    }
-
-    private boolean isCorrectLogin(User user) {
-        if (user.getLogin() == null) {
-            return false;
-        }
-        return !user.getLogin().contains(" ");
-    }
-
-    private void correctName(User user) {
-        if (user.getName() == null || user.getName().isEmpty()) {
-            user.setName(user.getLogin());
-        }
-    }
-
-    private boolean isCorrectBirthday(User user) {
-        return user.getBirthday().isBefore(LocalDate.now());
+        return userStorage.getSetUsersById(generalFriends);
     }
 }
