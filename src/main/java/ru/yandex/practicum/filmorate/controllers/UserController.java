@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controllers;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -9,6 +10,7 @@ import ru.yandex.practicum.filmorate.service.UserService;
 import java.util.*;
 
 @Getter
+@Slf4j
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
@@ -17,22 +19,27 @@ public class UserController {
 
     @GetMapping
     List<User> getAllUsers() {
-        return userService.getUserStorage().getAllUsers();
+        return userService.getAllUsers();
     }
 
     @PostMapping
     User createUser(@RequestBody User user) {
-        return userService.getUserStorage().createUser(user);
+        return userService.createUser(user);
     }
 
     @PutMapping
     User updateUser(@RequestBody User user) {
-        return userService.getUserStorage().updateUser(user);
+        return userService.updateUser(user);
+    }
+
+    @DeleteMapping
+    boolean deleteUser(@RequestBody User user) {
+        return userService.deleteUser(user);
     }
 
     @GetMapping("/{id}")
-    User getUser(@PathVariable("id") Long id) {
-        return userService.getUserStorage().getUserById(id);
+    Optional<User> getUser(@PathVariable("id") Long id) {
+        return userService.getUserById(id);
     }
 
     @PutMapping("/{id}/friends/{friendId}")

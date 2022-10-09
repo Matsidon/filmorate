@@ -4,50 +4,77 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.MPA;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
 @Getter
-@RestController
-@RequestMapping("/films")
+@RequestMapping
 @RequiredArgsConstructor
+@RestController
 public class FilmController {
     private final FilmService filmService;
 
-    @GetMapping
+    @GetMapping("/films")
     List<Film> getAllFilms() {
-        return filmService.getFilmStorage().getAllFilms();
+        return filmService.getAllFilms();
     }
 
-    @PostMapping
+    @PostMapping("/films")
     Film createFilm(@RequestBody Film film) {
-        return filmService.getFilmStorage().createFilm(film);
+        return filmService.createFilm(film);
     }
 
-    @PutMapping
+    @PutMapping("/films")
     Film updateFilm(@RequestBody Film film) {
-        return filmService.getFilmStorage().updateFilm(film);
+        return filmService.updateFilm(film);
     }
 
-    @GetMapping("/{id}")
-    Film getFilmById(@PathVariable Long id) {
-        return filmService.getFilmStorage().getFilmById(id);
+    @DeleteMapping("/films")
+    boolean deleteFilm(@RequestBody Film film) {
+        return filmService.deleteFilm(film);
     }
 
-    @PutMapping("/{id}/like/{userId}")
-    Set<Long> addLikeByUser(@PathVariable Long id, @PathVariable Long userId) {
+    @GetMapping("/films/{id}")
+    Optional<Film> getFilmById(@PathVariable Long id) {
+        return filmService.getFilmById(id);
+    }
+
+    @PutMapping("/films/{id}/like/{userId}")
+    long addLikeByUser(@PathVariable Long id, @PathVariable Long userId) {
         return filmService.addLike(id, userId);
     }
 
-    @DeleteMapping("/{id}/like/{userId}")
-    Set<Long> deleteLikeByUser(@PathVariable Long id, @PathVariable Long userId) {
+    @DeleteMapping("/films/{id}/like/{userId}")
+    long deleteLikeByUser(@PathVariable Long id, @PathVariable Long userId) {
         return filmService.removeLike(id, userId);
     }
 
-    @GetMapping("/popular")
+    @GetMapping("/films/popular")
     List<Film> getPopularFilms(@RequestParam(defaultValue = "10") Integer count) {
         return filmService.printTop10Films(count);
+    }
+
+    @GetMapping("/genres/{id}")
+    Genre getGenre(@PathVariable int id) {
+        return filmService.getGenre(id);
+    }
+
+    @GetMapping("/genres")
+    List<Genre> getAllGenres() {
+        return filmService.getAllGenres();
+    }
+
+    @GetMapping("/mpa/{id}")
+    MPA getMPA(@PathVariable int id) {
+        return filmService.getMPA(id);
+    }
+
+    @GetMapping("/mpa")
+    List<MPA> getAllMPA() {
+        return filmService.getAllMPA();
     }
 }
